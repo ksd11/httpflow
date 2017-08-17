@@ -137,6 +137,7 @@ struct ip {
     uint32_t ip_src, ip_dst;  /* source and dest address ip_src,ip_dst:发送者和校验者IP地址*/
 };
 /**处理IPV4**/
+/*检查是否是ipv4的数据包，如果是的话去掉ip头，返回tcp数据包*/
 static bool process_ipv4(struct packet_info *packet, const u_char *content, size_t len) {
     if (len < sizeof(struct ip)) {
         std::cerr << "received truncated IP datagram." << std::endl;
