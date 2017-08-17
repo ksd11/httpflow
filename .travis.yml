@@ -1,0 +1,22 @@
+language: cpp
+
+sudo: required
+
+os:
+    - linux
+
+compiler:
+    - clang
+
+before_install:
+    - sudo apt-get update
+    - sudo apt-get install libpcap-dev zlib1g-dev
+
+install:
+    - make
+    - sudo make install
+
+script:
+    - httpflow -h
+	
+/*httpflow基本信息说明*/
