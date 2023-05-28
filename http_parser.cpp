@@ -292,9 +292,9 @@ static const uint8_t normal_url_char[32] = {
 enum state
   { s_dead = 1 /* important that this is > 0 */
 
-  , s_start_req_or_res
+  , s_start_req_or_res // request 或 response请求
   , s_res_or_resp_H
-  , s_start_res
+  , s_start_res // response请求
   , s_res_H
   , s_res_HT
   , s_res_HTT
@@ -303,13 +303,13 @@ enum state
   , s_res_http_major
   , s_res_first_http_minor
   , s_res_http_minor
-  , s_res_first_status_code
+  , s_res_first_status_code  // 状态码
   , s_res_status_code
   , s_res_status_start
   , s_res_status
   , s_res_line_almost_done
 
-  , s_start_req
+  , s_start_req   // request请求
 
   , s_req_method
   , s_req_spaces_before_url
@@ -324,35 +324,35 @@ enum state
   , s_req_query_string
   , s_req_fragment_start
   , s_req_fragment
-  , s_req_http_start
-  , s_req_http_H
-  , s_req_http_HT
-  , s_req_http_HTT
-  , s_req_http_HTTP
-  , s_req_first_http_major
-  , s_req_http_major
-  , s_req_first_http_minor
-  , s_req_http_minor
-  , s_req_line_almost_done
+  , s_req_http_start  // HTTP/1.1 开始
+  , s_req_http_H      // 读取完H
+  , s_req_http_HT     // 读取完HT
+  , s_req_http_HTT    // 读取完HTT
+  , s_req_http_HTTP   // 读取完HTTP
+  , s_req_first_http_major // 读取完HTTP/
+  , s_req_http_major       // 读取完HTTP/1
+  , s_req_first_http_minor // 读取完HTTP/1.1
+  , s_req_http_minor       // 读取 \r
+  , s_req_line_almost_done // 读取 \n
 
-  , s_header_field_start
-  , s_header_field
-  , s_header_value_discard_ws
+  , s_header_field_start // field
+  , s_header_field       // 开始解析Header   field:value
+  , s_header_value_discard_ws // 清除空白
   , s_header_value_discard_ws_almost_done
   , s_header_value_discard_lws
   , s_header_value_start
-  , s_header_value
+  , s_header_value // value
   , s_header_value_lws
 
-  , s_header_almost_done
+  , s_header_almost_done // header读取到\r\n
 
   , s_chunk_size_start
   , s_chunk_size
   , s_chunk_parameters
   , s_chunk_size_almost_done
 
-  , s_headers_almost_done
-  , s_headers_done
+  , s_headers_almost_done // 整个headers准备
+  , s_headers_done  // 整个headers结束
 
   /* Important: 's_headers_done' must be the last 'header' state. All
    * states beyond this must be 'body' states. It is used for overflow
@@ -363,10 +363,10 @@ enum state
   , s_chunk_data_almost_done
   , s_chunk_data_done
 
-  , s_body_identity
+  , s_body_identity    // 含有body数据
   , s_body_identity_eof
 
-  , s_message_done
+  , s_message_done // 数据读取完毕
   };
 
 /**--define类似于简单的赋值替换，在用到PARSING_HEADER(state)的地方原封不动的替换成后者--**/
@@ -380,26 +380,26 @@ enum header_states
   , h_CO
   , h_CON
 
-  , h_matching_connection
+  , h_matching_connection   // 准备匹配 connection
   , h_matching_proxy_connection
-  , h_matching_content_length
+  , h_matching_content_length // 准备匹配 content-length
   , h_matching_transfer_encoding
   , h_matching_upgrade
 
-  , h_connection
+  , h_connection  // header field 成功匹配到 connection
   , h_content_length
   , h_transfer_encoding
   , h_upgrade
 
   , h_matching_transfer_encoding_chunked
   , h_matching_connection_token_start
-  , h_matching_connection_keep_alive
+  , h_matching_connection_keep_alive  // connection field的value准备匹配 keep-alive
   , h_matching_connection_close
   , h_matching_connection_upgrade
   , h_matching_connection_token
 
   , h_transfer_encoding_chunked
-  , h_connection_keep_alive
+  , h_connection_keep_alive // connection field的value成功匹配 keep-alive
   , h_connection_close
   , h_connection_upgrade
   };
@@ -1074,12 +1074,12 @@ reexecute:
         break;
       }
 
-	  //请求方法和url之间有一个空格
+	  //请求方法和url之间有一个空格的地方
       case s_req_spaces_before_url:
       {
         if (ch == ' ') break;
 
-        MARK(url);
+        MARK(url); // url_mark 记录了请求地址的信息
         if (parser->method == HTTP_CONNECT) {
           UPDATE_STATE(s_req_server_start);
         }
@@ -1324,7 +1324,7 @@ reexecute:
       //各种请求头域的确定
       case s_header_field:
       {
-        const char* start = p;
+        const char* start = p; // 下面的for循环用来匹配field字段
         for (; p != data + len; p++) {
           ch = *p;
           c = TOKEN(ch);
@@ -1368,7 +1368,7 @@ reexecute:
               if (parser->index > sizeof(CONNECTION)-1
                   || c != CONNECTION[parser->index]) {
                 parser->header_state = h_general;
-              } else if (parser->index == sizeof(CONNECTION)-2) {
+              } else if (parser->index == sizeof(CONNECTION)-2) { // 由于字符串以'\0'结尾，因此是减2
                 parser->header_state = h_connection;
               }
               break;
@@ -1382,7 +1382,7 @@ reexecute:
                   || c != PROXY_CONNECTION[parser->index]) {
                 parser->header_state = h_general;
               } else if (parser->index == sizeof(PROXY_CONNECTION)-2) {
-                parser->header_state = h_connection;
+                parser->header_state = h_connection; // 成功匹配到connection
               }
               break;
 
@@ -1535,7 +1535,7 @@ reexecute:
       {
         const char* start = p;
         enum header_states h_state = (enum header_states) parser->header_state;
-        for (; p != data + len; p++) {
+        for (; p != data + len; p++) { // 获取value
           ch = *p;
           if (ch == CR) {
             UPDATE_STATE(s_header_almost_done);

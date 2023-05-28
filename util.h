@@ -1,5 +1,5 @@
 #ifndef util_h
-#define util_h         /**防止重复定义/
+#define util_h
 
 #include <memory.h>
 #include <cstring>

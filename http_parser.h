@@ -73,7 +73,6 @@ typedef unsigned __int64 uint64_t;
   *对标题大小的有效限制，定义宏
   *到非常大的数字（例如-DHTTP_MAX_HEADER_SIZE = 0x7fffffff）
 */
- */
 #ifndef HTTP_MAX_HEADER_SIZE
 # define HTTP_MAX_HEADER_SIZE (80*1024)
 #endif
@@ -237,7 +236,7 @@ enum http_status
   XX(31, LINK,        LINK)         \
   XX(32, UNLINK,      UNLINK)       \
 
-enum http_method
+enum http_method // HTTP_DELETE = 0, ...
   {
 #define XX(num, name, string) HTTP_##name = num,
   HTTP_METHOD_MAP(XX)
@@ -314,7 +313,7 @@ enum flags
 
 /* Define HPE_* values for each errno value above */
 #define HTTP_ERRNO_GEN(n, s) HPE_##n,
-enum http_errno {
+enum http_errno { // HPE_OK,..
   HTTP_ERRNO_MAP(HTTP_ERRNO_GEN)
 };
 #undef HTTP_ERRNO_GEN      //取消定义
@@ -354,7 +353,7 @@ struct http_parser {
   void *data; /* A pointer to get hook to the "connection" or "socket" object */
 };
 
-
+// 此结构体定义的都是一些函数呀，这些函数是干嘛的？回调？when
 struct http_parser_settings {
   http_cb      on_message_begin;
   http_data_cb on_url;

@@ -14,7 +14,7 @@ class custom_parser {
 
 private:
     http_parser parser;
-    http_parser_settings settings;
+    http_parser_settings settings; // 此setting作为parser的一个字段了，不需要set
 
     std::string method;
     std::string url;
@@ -74,6 +74,8 @@ public:
     static int on_body(http_parser *parser, const char *at, size_t length);
 
     static int on_message_complete(http_parser *parser);
+
+    std::string get_resonable_filename(std::string save_dirname);
 };
 
 std::ostream& operator<<(std::ostream& out, const custom_parser& parser);

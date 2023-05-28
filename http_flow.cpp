@@ -375,7 +375,7 @@ int init_capture_config(int argc, char **argv, capture_config *conf, char *errbu
     }
 
     if (!conf->output_path.empty()) {
-        int mk_ret = mkdir(conf->output_path.c_str(), S_IRWXU);
+        int mk_ret = mkdir(conf->output_path.c_str(), ACCESSPERMS);
         if (mk_ret != 0 && errno != EEXIST) {
             std::cerr << "mkdir [" << conf->output_path << "] failed. ret=" << mk_ret << std::endl;
             exit(1);
