@@ -180,18 +180,24 @@ static void mkdir_helper(std::string save_dirname){
 
 
 std::string custom_parser::get_resonable_filename(std::string save_dirname){
-    // std::cout << save_dirname << std::endl;
-    // std::cout << this->url << std::endl;
+    std::cout << save_dirname << std::endl;
+    std::cout << this->url << std::endl;
 
-    // if(this->url[this->url.length() - 1] == '/'){
-    //     mkdir_helper(save_dirname + this->url);
-    //     return this->url + "index.html";
-    // }
-    // size_t p = this->url.rfind('/');
-    // mkdir_helper(save_dirname + "/" + this->url.substr(0, p));
+    if(this->url[this->url.length() - 1] == '/'){
+        mkdir_helper(save_dirname + this->url);
+        return this->url + "index.html";
+    }
+    int slash_p = this->url.rfind('/');
+    int dot_p = this->url.rfind('.');
+    if(slash_p != -1 && slash_p < dot_p){
+        std::cout << slash_p << " "<< dot_p << std::endl;
+        mkdir_helper(save_dirname + "/" + this->url.substr(0, slash_p));
+        return this->url ;
+    }
 
     mkdir_helper(save_dirname + "/" + this->url);
     return this->url + "/index.html";
+    // return this->url ;
 }
 
 // 如果存在output_path，则输出到output，否则，打印到标准输出
