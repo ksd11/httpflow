@@ -13,7 +13,7 @@ class custom_parser {
     friend std::ostream& operator<<(std::ostream& out, const custom_parser& f);
 
 private:
-    http_parser parser;
+    http_parser parser;            // 这个parser有一个指针data执行了custom_parser，在构造函数里初始化
     http_parser_settings settings; // 此setting作为parser的一个字段了，不需要set
 
     std::string method;

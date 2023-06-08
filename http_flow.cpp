@@ -35,7 +35,7 @@ struct capture_config {
     int datalink_size;
 };
 
-std::map<std::string, std::list<custom_parser *> > http_requests;
+std::map<std::string, std::list<custom_parser *> > http_requests; // 所有请求pair作为键
 /*http://blog.csdn.net/a19881029/article/details/38091243/*/
 /**定义一个完整TCP数据报首部的结构体 http://blog.chinaunix.net/uid-26413668-id-3408115.html**/
 struct tcphdr {
@@ -195,7 +195,7 @@ void process_packet(const pcre *url_filter_re, const pcre_extra *url_filter_extr
     if (iter == http_requests.end() || iter->second.empty()) {
         if (!packet.body.empty()) {
             custom_parser *parser = new custom_parser;
-            if (parser->parse(packet.body, HTTP_REQUEST)) {
+            if (parser->parse(packet.body, HTTP_REQUEST)) { // 重点！！解析包
                 parser->set_addr(packet.src_addr, packet.dst_addr);
                 std::list<custom_parser *> requests;
                 requests.push_back(parser);
@@ -206,7 +206,7 @@ void process_packet(const pcre *url_filter_re, const pcre_extra *url_filter_extr
         }
     } else {
         std::list<custom_parser *> &parser_list = iter->second;
-        custom_parser *last_parser = *(parser_list.rbegin());
+        custom_parser *last_parser = *(parser_list.rbegin()); // 获取最后一个packet
 
         if (!packet.body.empty()) {
             if (last_parser->is_request_address(packet.src_addr)) {

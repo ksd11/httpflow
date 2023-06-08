@@ -182,7 +182,7 @@ do {                                                                 \
 #define KEEP_ALIVE "keep-alive"
 #define CLOSE "close"
 
-/*对应的请求方法*/
+/*对应的请求方法编号 DELETE-0、GET-1...*/
 static const char *method_strings[] =
   {
 #define XX(num, name, string) #string,
@@ -309,17 +309,17 @@ enum state
   , s_res_status
   , s_res_line_almost_done
 
-  , s_start_req   // request请求
+  , s_start_req             // 开始进行request请求
 
-  , s_req_method
-  , s_req_spaces_before_url
-  , s_req_schema
+  , s_req_method            // 从 s_start_req 转移， 开始匹配方法
+  , s_req_spaces_before_url // 匹配完方法，匹配url之前的空格
+  , s_req_schema            // 
   , s_req_schema_slash
   , s_req_schema_slash_slash
   , s_req_server_start
   , s_req_server
   , s_req_server_with_at
-  , s_req_path
+  , s_req_path          // 请求一个path
   , s_req_query_string_start
   , s_req_query_string
   , s_req_fragment_start
@@ -648,7 +648,7 @@ parse_url_char(enum state s, const char ch)
   return s_dead;
 }
 /**--执行解析操作，传入解析器，设置等参数，整个解析过程占了1000行**/
-//解析报文的主要函数
+//!!! 解析报文的主要函数
 size_t http_parser_execute (http_parser *parser,
                             const http_parser_settings *settings,
                             const char *data,
@@ -717,12 +717,12 @@ size_t http_parser_execute (http_parser *parser,
   default:
     break;
   }
-
+/************** 逐字节开始匹配  ******************/
   for (p=data; p != data + len; p++) {
     ch = *p;
 
     if (PARSING_HEADER(CURRENT_STATE()))
-      COUNT_HEADER_SIZE(1);
+      COUNT_HEADER_SIZE(1); // 每次消耗一个字节都要记录，并且保证不会超过最大长度
 
 reexecute:
     switch (CURRENT_STATE()) {
@@ -775,7 +775,7 @@ reexecute:
         }
         break;
       //响应报文的解析部分
-      case s_start_res:
+      case s_start_res:   // response 匹配起点
       {
         parser->flags = 0;
         parser->content_length = ULLONG_MAX;
@@ -972,9 +972,9 @@ reexecute:
         STRICT_CHECK(ch != LF);
         UPDATE_STATE(s_header_field_start);
         break;
-
+/******** 上面大多是response解析，下面是request  *****************/
 		//解析请求行
-      case s_start_req:
+      case s_start_req: // request请求起点...
       {
         if (ch == CR || ch == LF)
           break;
@@ -987,8 +987,8 @@ reexecute:
         }
 
         parser->method = (enum http_method) 0;
-        parser->index = 1;
-		//判断请求行中的方法
+        parser->index = 1; // 匹配了一个字节后，继续匹配下一个字节
+		    //判断请求行中的方法
         switch (ch) {
           case 'A': parser->method = HTTP_ACL; break;
           case 'B': parser->method = HTTP_BIND; break;
@@ -1027,9 +1027,9 @@ reexecute:
         }
 
         matcher = method_strings[parser->method];
-        if (ch == ' ' && matcher[parser->index] == '\0') {
+        if (ch == ' ' && matcher[parser->index] == '\0') { // 匹配完成
           UPDATE_STATE(s_req_spaces_before_url);
-        } else if (ch == matcher[parser->index]) {
+        } else if (ch == matcher[parser->index]) { // 若匹配了
           ; /* nada */
         } else if (IS_ALPHA(ch)) {
 
@@ -1115,10 +1115,10 @@ reexecute:
 
         break;
       }
-
-      case s_req_server:
+      /********* 解析 host 或 path *****************/
+      case s_req_server: // 请求一个server
       case s_req_server_with_at:
-      case s_req_path:
+      case s_req_path: // 请求一个path
       case s_req_query_string_start:
       case s_req_query_string:
       case s_req_fragment_start:
@@ -1126,7 +1126,7 @@ reexecute:
       {
         switch (ch) {
           case ' ':
-            UPDATE_STATE(s_req_http_start);
+            UPDATE_STATE(s_req_http_start); // 消耗完这个空格，证明http协议版本开始了
             CALLBACK_DATA(url);
             break;
           case CR:
@@ -1147,7 +1147,7 @@ reexecute:
         }
         break;
       }
-
+/************解析http协议版本 start***********************/
 	  //请求报文中的http version的处理
       case s_req_http_start:
         switch (ch) {
@@ -1271,7 +1271,9 @@ reexecute:
         UPDATE_STATE(s_header_field_start);//request header field开始
         break;
       }
+/************解析http协议版本 end***********************/
 
+/************解析http首部字段 start  **********************/
       case s_header_field_start:
       {
         if (ch == CR) {//出现回车符，表示请求头域的结束
@@ -1469,7 +1471,7 @@ reexecute:
       //以下为寻找各种头域值
       case s_header_value_start:
       {
-        MARK(header_value);
+        MARK(header_value); // header_value_mark
 
         UPDATE_STATE(s_header_value);
         parser->index = 0;
@@ -1560,7 +1562,7 @@ reexecute:
           c = LOWER(ch);
 
           switch (h_state) {
-            case h_general:
+            case h_general: // 读取一个value，根据行尾的cr/lf来确定
             {
               const char* p_cr;
               const char* p_lf;
@@ -1618,7 +1620,7 @@ reexecute:
             }
 
             /* Transfer-Encoding: chunked */
-			//块传输编码
+			      //块传输编码
             case h_matching_transfer_encoding_chunked:
               parser->index++;
               if (parser->index > sizeof(CHUNKED)-1
@@ -1910,6 +1912,8 @@ reexecute:
 
         break;
       }
+/************解析http首部字段 end  **********************/
+
       //identity
       case s_body_identity:
       {
@@ -2169,7 +2173,7 @@ http_should_keep_alive (const http_parser *parser)
   return !http_message_needs_eof(parser);
 }
 
-/**--判断method_strings,"<unknown>"的长度**/
+/**--将method翻译成对应的method_str**/
 const char *
 http_method_str (enum http_method m)
 {
@@ -2193,6 +2197,9 @@ http_parser_settings_init(http_parser_settings *settings)
 {
   memset(settings, 0, sizeof(*settings));
 }
+
+/******************* 下面的函数不用看，对于httpflow，没有调用过下面函数  end **************/
+
 /**--是如果它的条件返回错误，则终止程序执行,将http_errno和http_strerror_tab比较，返回错误值**/
 const char *
 http_errno_name(enum http_errno err) {

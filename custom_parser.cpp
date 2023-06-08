@@ -9,7 +9,7 @@ custom_parser::custom_parser() {
     gzip_flag = false;
     http_parser_init(&parser, HTTP_REQUEST);
     parser.data = this;
-
+    // 初始化setting，当解析http packet某个阶段的时候会被调用 -- 钩子函数！
     http_parser_settings_init(&settings);
     settings.on_url = on_url;
     settings.on_header_field = on_header_field;
@@ -21,7 +21,7 @@ custom_parser::custom_parser() {
 //区分完request和response，执行http解析
 bool custom_parser::parse(const std::string &body, enum http_parser_type type) {
     if (parser.type != type) {
-        http_parser_init(&parser, type);
+        http_parser_init(&parser, type); // 默认初始化为一个request，如果是response，需要重新初始化
     }
     if (parser.type == HTTP_REQUEST) {
         request.append(body);
@@ -59,7 +59,7 @@ int custom_parser::on_header_field(http_parser *parser, const char *at, size_t l
     }
     return 0;
 }
-//头域值
+//头域值 当读取到一个header和其value是回调
 int custom_parser::on_header_value(http_parser *parser, const char *at, size_t length) {
     custom_parser *self = reinterpret_cast<custom_parser *>(parser->data);
     if (parser->type == HTTP_RESPONSE) {
@@ -67,14 +67,14 @@ int custom_parser::on_header_value(http_parser *parser, const char *at, size_t l
             self->gzip_flag = true;
         }
     } else {
-        if (self->temp_header_field == "host") {
+        if (self->temp_header_field == "host") { // 如果读取到的是host的value
             self->host.assign(at, length);
         }
     }
     // std::cout << self->temp_header_field <<  ":" << std::string(at, length) << std::endl;
     return 0;
 }
-
+// 头部字段读取完毕时回调
 int custom_parser::on_headers_complete(http_parser *parser) {
     custom_parser *self = reinterpret_cast<custom_parser *>(parser->data);
     if (parser->type == HTTP_REQUEST) {
